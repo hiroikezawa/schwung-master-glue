@@ -1,0 +1,68 @@
+{
+  "title": "MASTER GLUE",
+  "children": [
+    {
+      "title": "Idea",
+      "lines": [
+        "Clean bus compressor",
+        "plus a peak limiter",
+        "for the Master FX.",
+        "No saturation, no EQ",
+        "on the audio.",
+        "Needs Move->Schwung",
+        "on to hear Move's",
+        "own tracks."
+      ]
+    },
+    {
+      "title": "Main knobs",
+      "lines": [
+        "1 GLUE amount",
+        "  25% = -20 dB thr.",
+        "2 PUNCH attack ms",
+        "3 REL AUTO or fixed",
+        "4 LOWP sidechain HPF",
+        "5 DENS makeup dB",
+        "6 LIMIT drive dB",
+        "7 CEIL ceiling dBFS",
+        "8 OUT final gain"
+      ]
+    },
+    {
+      "title": "Advanced",
+      "lines": [
+        "RATIO 1.5 2 3 4:1",
+        "THRSH = GLUE in dB",
+        "KNEE soft knee dB",
+        "L.REL limiter rel",
+        "LOOK lookahead ms",
+        "C.BYP L.BYP BYP",
+        "  bypass comp, lim,",
+        "  or everything"
+      ]
+    },
+    {
+      "title": "Meters",
+      "lines": [
+        "IN / OUT peak dBFS",
+        "COMP comp GR dB",
+        "LIMIT limiter GR dB",
+        "A/B ON = bypass at",
+        "  the same loudness",
+        "  to judge by ear,",
+        "  not by volume"
+      ]
+    },
+    {
+      "title": "Presets",
+      "lines": [
+        "TECHNO GLUE 2:1 30ms",
+        "  AUTO, HPF 100 Hz",
+        "DEEP GLUE 1.5:1 40ms",
+        "  AUTO, HPF 120 Hz",
+        "TIGHT TECHNO 3:1",
+        "  15ms 100ms, 90 Hz"
+      ]
+    }
+  ]
+}
