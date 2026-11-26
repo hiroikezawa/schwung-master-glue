@@ -1,236 +1,308 @@
 # MASTER GLUE
 
-Ableton Move 上の [Schwung](https://github.com/charlesvestal/schwung) 用 Audio FX モジュールです。
-**Master FX スロットに挿して使う、クリーンなステレオ・バスコンプレッサー＋ルックアヘッド・ピークリミッター**です。
+**English** | [日本語](README.ja.md)
 
-- ステレオリンクの RMS コンプレッサー（ソフトニー、サイドチェイン HPF、AUTO リリース）
-- その後段にサンプルピーク・リミッター（ルックアヘッド 1〜3 ms、Ceiling 厳守）
-- サチュレーション・歪み・オーディオへの EQ は一切なし
-- ライブ中に触らず、挿しっぱなしで使う前提の設計
+An Audio FX module for [Schwung](https://github.com/charlesvestal/schwung) on
+Ableton Move. It is **a clean stereo bus compressor plus a look-ahead peak
+limiter, meant for the Master FX slot**.
 
-SSL G-Series Bus Compressor をパラメーター構成の参考にしていますが、回路や挙動を再現したものではありません。また、Solid State Logic 社とは一切関係ありません。
+- A stereo-linked RMS compressor (soft knee, sidechain HPF, AUTO release)
+- Followed by a sample-peak limiter (1–3 ms look-ahead, the Ceiling strictly held)
+- No saturation, distortion or EQ on the audio at all
+- Designed to be inserted and left alone, not touched during a live set
+
+The SSL G-Series Bus Compressor served as a reference for the parameter set,
+but neither its circuit nor its behaviour is reproduced. This module has no
+connection with Solid State Logic.
 
 ---
 
-## まず知っておくこと：Master FX が処理する音
+## First, what Master FX processes
 
-Schwung 1.7.3 のホスト（`src/schwung_shim.c`）では、Master FX が受け取る音は設定によって変わります。
+In the Schwung 1.7.3 host (`src/schwung_shim.c`), the audio Master FX receives
+depends on a setting.
 
-| 設定 | Master FX が処理する音 | MASTER GLUE の効き方 |
+| Setting | What Master FX processes | How MASTER GLUE acts |
 |---|---|---|
-| **Move→Schwung（Link Audio ルーティング）ON** | Move の 4 トラックと Schwung スロットを合わせた**全体のミックス** | 仕様どおりのマスターバスコンプとして働きます |
-| Move→Schwung OFF（通常） | **Schwung の音だけ**（スロットのシンセ、スロット FX、send リターン）。Move 本体のトラックは Master FX の**後で**足されます | Move のトラックは処理されません。Ceiling も Schwung 側の音にしか効きません |
+| **Move→Schwung (Link Audio routing) ON** | **The whole mix**: Move's 4 tracks together with the Schwung slots | Works as the master-bus compressor it is designed to be |
+| Move→Schwung OFF (normal) | **Only Schwung's audio** (slot synths, slot FX, send returns). Move's own tracks are added **after** Master FX | Move's tracks are not processed. The Ceiling applies only to the Schwung side |
 
-**Move のキックやベースをまとめたい場合は、Global Settings → Audio → Move->Schwung を ON にしてください。** OFF のままだと、Schwung 側の音だけが圧縮され、2 ms 遅れます（下記「レイテンシー」）。
+**To glue Move's kick and bass, turn on Global Settings → Audio →
+Move->Schwung.** Left OFF, only the Schwung side is compressed, and it is 2 ms
+late (see "Latency" below).
 
-Master FX の出力はユニティゲインのミックスで、マスターボリュームはその後でかかります。そのため Ceiling は「マスターボリューム最大時のフルスケール」を基準にした値です。
+Master FX's output is a unity-gain mix, and the master volume is applied after
+it. The Ceiling is therefore relative to "full scale at maximum master volume".
 
-## インストール
+## Installing
 
-1. Releases から `master-glue-module.tar.gz` を入手するか、自分でビルドします（`scripts/build.sh arm64` を実行すると `dist/` に生成されます）。
-2. Schwung Manager（`http://move.local:7700`）の **Install custom module** からアップロードします。コマンドラインからなら次のとおりです。
+1. Get `master-glue-module.tar.gz` from Releases, or build it yourself (run
+   `scripts/build.sh arm64` and it appears in `dist/`).
+2. Upload it with **Install custom module** in Schwung Manager
+   (`http://move.local:7700`). From the command line:
 
    ```bash
    python3 scripts/install.py http://move.local:7700
    ```
 
-3. Move を再起動します。
+3. Restart Move.
 
-## Master FX への配置
+## Placing it in Master FX
 
-1. **Shift + Vol + Menu**（またはメニュー長押し）で Master FX を開きます。
-2. 空いている位置で `+` を選び、**MASTER GLUE** を選びます。
-3. Master FX の**最後**に置くのが基本です（リミッターが最後に来るように）。
-4. **Global Settings → Audio → Move->Schwung** を ON にします（上の表を参照）。ホストがこのモードに入るには、Move の Link Audio からトラック音声が届いている必要があります。届いていない間は自動的に通常モードに戻ります。
+1. Open Master FX with **Shift + Vol + Menu** (or a long press on Menu).
+2. Choose `+` at a free position and pick **MASTER GLUE**.
+3. Normally put it **last** in Master FX (so the limiter comes last).
+4. Turn on **Global Settings → Audio → Move->Schwung** (see the table above).
+   For the host to enter this mode, track audio must be arriving from Move's
+   Link Audio. While it is not, the host falls back to the normal mode by itself.
 
-## ページとパラメーター
+## Pages and parameters
 
-ジョグでページを切り替えます。主要な調整は MAIN ページだけで完結します。
+Switch pages with the jog wheel. The main adjustments are all on the MAIN page.
 
-### Page 1：MAIN
+### Page 1: MAIN
 
-| ノブ | 表示 | 内容 | 範囲 | 初期値 |
+| Knob | Display | What it does | Range | Default |
 |---|---|---|---|---|
-| 1 | GLUE | 圧縮量のマクロ。しきい値＝ **-0.8 dB × GLUE%** | 0〜100 %（0 % で圧縮なし） | 25 %（= -20 dBFS） |
-| 2 | PUNCH | アタック時間 | 1〜50 ms | 30 ms |
-| 3 | REL | リリース | AUTO / 50 / 100 / 150 / 200 / 300 / 400 / 600 / 800 / 1000 ms | AUTO |
-| 4 | LOWP | Low Protect：検出側のみのハイパス | OFF / 40 / 60 / 80 / 90 / 100 / 120 / 150 / 200 Hz | 100 Hz |
-| 5 | DENS | Density：コンプ後のメイクアップゲイン（音量を上げるだけで、質感は変えません） | 0〜+12 dB | 0 dB |
-| 6 | LIMIT | リミッターへの入力ゲイン | 0〜+12 dB | 0 dB |
-| 7 | CEIL | リミッターの最大出力 | -6〜-0.3 dBFS | -1.0 dBFS |
-| 8 | OUT | 最終出力（減衰のみ） | -24〜0 dB | 0 dB |
+| 1 | GLUE | Compression macro. Threshold = **-0.8 dB × GLUE%** | 0–100 % (no compression at 0 %) | 25 % (= -20 dBFS) |
+| 2 | PUNCH | Attack time | 1–50 ms | 30 ms |
+| 3 | REL | Release | AUTO / 50 / 100 / 150 / 200 / 300 / 400 / 600 / 800 / 1000 ms | AUTO |
+| 4 | LOWP | Low Protect: a high-pass on the detector only | OFF / 40 / 60 / 80 / 90 / 100 / 120 / 150 / 200 Hz | 100 Hz |
+| 5 | DENS | Density: make-up gain after the compressor (only raises the level, does not change the character) | 0 to +12 dB | 0 dB |
+| 6 | LIMIT | Input gain into the limiter | 0 to +12 dB | 0 dB |
+| 7 | CEIL | Limiter's maximum output | -6 to -0.3 dBFS | -1.0 dBFS |
+| 8 | OUT | Final output (attenuation only) | -24 to 0 dB | 0 dB |
 
-- **GLUE の目安**：ピーク -2 dBFS 前後・RMS -16 dBFS 前後のミックスで、25 % なら GR が平均約 1.4 dB・最大約 3 dB です（合成ミックスでの実測）。20〜40 % が常用範囲ですが、効き方は入力レベル次第なので、Meters ページの COMP を見て合わせてください。
-- **OUT は減衰のみ**で、リミッターの**後**にあります。リミッター後に増幅すると Ceiling を超えるためです。音量を上げたいときは DENS か LIMIT を使ってください。
+- **A guide to GLUE**: on a mix with peaks around -2 dBFS and RMS around
+  -16 dBFS, 25 % gives about 1.4 dB of GR on average and about 3 dB at most
+  (measured on a synthetic mix). 20–40 % is the everyday range, but the effect
+  depends on the input level, so set it while watching COMP on the Meters page.
+- **OUT only attenuates** and sits **after** the limiter, because amplifying
+  after the limiter would exceed the Ceiling. To make things louder, use DENS
+  or LIMIT.
 
-### Page 2：ADVANCED
+### Page 2: ADVANCED
 
-| ノブ | 表示 | 内容 | 範囲 | 初期値 |
+| Knob | Display | What it does | Range | Default |
 |---|---|---|---|---|
-| 1 | RATIO | レシオ | 1.5:1 / 2:1 / 3:1 / 4:1 | 2:1 |
-| 2 | THRSH | しきい値（**GLUE と同じ値を dB で表示したもの**） | -80〜0 dB | -20 dB |
-| 3 | KNEE | ソフトニー幅 | 0〜12 dB | 6 dB |
-| 4 | L.REL | リミッターのリリース | 20〜500 ms | 100 ms |
-| 5 | LOOK | ルックアヘッド | 1〜3 ms | 2 ms |
-| 6 | C.BYP | コンプのみバイパス | OFF / ON | OFF |
-| 7 | L.BYP | リミッターのみバイパス | OFF / ON | OFF |
-| 8 | BYP | 全体バイパス | OFF / ON | OFF |
+| 1 | RATIO | Ratio | 1.5:1 / 2:1 / 3:1 / 4:1 | 2:1 |
+| 2 | THRSH | Threshold (**the same value as GLUE, shown in dB**) | -80 to 0 dB | -20 dB |
+| 3 | KNEE | Soft-knee width | 0–12 dB | 6 dB |
+| 4 | L.REL | Limiter release | 20–500 ms | 100 ms |
+| 5 | LOOK | Look-ahead | 1–3 ms | 2 ms |
+| 6 | C.BYP | Bypass the compressor only | OFF / ON | OFF |
+| 7 | L.BYP | Bypass the limiter only | OFF / ON | OFF |
+| 8 | BYP | Bypass everything | OFF / ON | OFF |
 
-**GLUE と THRESHOLD の優先順位**：2 つは同じ 1 つの値を別の単位で見たものなので、矛盾は起きません。THRSH を回すと GLUE も動き、GLUE を回すと THRSH も動きます。保存されるのは GLUE だけです。THRSH を 0 dB（GLUE 0 %）にするとコンプは完全にオフになります。
+**GLUE versus THRESHOLD**: the two are one value seen in different units, so
+they can never contradict each other. Turning THRSH moves GLUE and turning GLUE
+moves THRSH. Only GLUE is saved. THRSH at 0 dB (GLUE 0 %) switches the
+compressor off completely.
 
-### Page 3：METERS
+### Page 3: METERS
 
-| 表示 | 内容 |
+| Display | What it shows |
 |---|---|
-| IN | 入力ピーク（dBFS、-60 で下限） |
-| OUT | 出力ピーク（dBFS） |
-| COMP | コンプのゲインリダクション（dB、負の値） |
-| LIMIT | リミッターのゲインリダクション（dB、負の値） |
-| A/B | **レベルを揃えた比較**。ON にすると、未処理の音（同じ 2 ms 遅延）を、処理後と同じ RMS 音量で再生します |
+| IN | Input peak (dBFS, floor at -60) |
+| OUT | Output peak (dBFS) |
+| COMP | Compressor gain reduction (dB, negative) |
+| LIMIT | Limiter gain reduction (dB, negative) |
+| A/B | **Level-matched comparison**. When ON, the unprocessed audio (with the same 2 ms delay) plays at the same RMS level as the processed audio |
 
-- メーターは読み取り専用（点線枠）で、0.5 秒ピークホールドの後 20 dB/s で落ちます。DSP は値を記録するだけで、画面の読み取りが処理を止めることはありません。更新は数 Hz です。
-- **A/B の使い方**：コンプは音量を下げ、DENS は上げるので、普通のバイパス比較では「大きい方が良く聞こえる」錯覚が起きます。A/B=ON は処理前の音を処理後の音量に合わせて流すので、音量差ではなく質感の差で判断できます。音量は約 3 秒の RMS で追従するため、切り替え直後は合うまで数秒かかります。
+- The meters are read-only (dotted frame) and fall at 20 dB/s after a 0.5 s peak
+  hold. The DSP only records the values, so reading them on screen never stalls
+  processing. They update a few times a second.
+- **Using A/B**: the compressor lowers the level and DENS raises it, so an
+  ordinary bypass comparison falls for "louder sounds better". A/B=ON plays the
+  unprocessed audio at the processed level, so you judge the character rather
+  than the level difference. The level follows an RMS over about 3 s, so right
+  after switching it takes a few seconds to match.
 
-### Page 4：PRESETS
+### Page 4: PRESETS
 
-ファクトリープリセットのブラウザーです。ジョグで選ぶとその場で適用されます。自分の設定は、ホストが自動で付ける **My Presets** ページ（状態の保存・読み込み）で保存できます。
+A browser of factory presets. Choosing one with the jog applies it at once.
+Save your own settings on the **My Presets** page the host adds automatically
+(saving and loading the state).
 
-## ファクトリープリセット
+## Factory presets
 
-いずれも GLUE 25 %、Knee 6 dB、Ceiling -1 dBFS、DENS / LIMIT / OUT 0 dB、L.REL 100 ms、LOOK 2 ms です。
+All have GLUE 25 %, Knee 6 dB, Ceiling -1 dBFS, DENS / LIMIT / OUT 0 dB,
+L.REL 100 ms, LOOK 2 ms.
 
-| プリセット | Ratio | Attack | Release | Low Protect | 用途 |
+| Preset | Ratio | Attack | Release | Low Protect | Use |
 |---|---|---|---|---|---|
-| **TECHNO GLUE**（初期状態） | 2:1 | 30 ms | AUTO | 100 Hz | 通常のテクノ。キックの頭を残して全体をまとめる |
-| **DEEP GLUE** | 1.5:1 | 40 ms | AUTO | 120 Hz | ディープ／アンビエントテクノ。低域の余韻と空間を残す |
-| **TIGHT TECHNO** | 3:1 | 15 ms | 100 ms | 90 Hz | ハード／インダストリアル。より引き締める |
+| **TECHNO GLUE** (initial state) | 2:1 | 30 ms | AUTO | 100 Hz | Everyday techno. Keeps the kick's front and glues the rest |
+| **DEEP GLUE** | 1.5:1 | 40 ms | AUTO | 120 Hz | Deep / ambient techno. Keeps the low-end tails and space |
+| **TIGHT TECHNO** | 3:1 | 15 ms | 100 ms | 90 Hz | Hard / industrial. Tighter |
 
-プリセットの値は仕様書どおりです。合成信号では検証済みですが、実際のミックスでの聴感調整はまだ行っていません（下記「テスト結果」）。
+The preset values follow the specification. They are verified on synthetic
+signals, but have not yet been tuned by ear on real mixes (see "Test results").
 
-## 推奨設定
+## Recommended settings
 
-- まず **TECHNO GLUE** のまま、COMP メーターが曲の大きいところで **-1〜-3 dB** になるように GLUE を合わせます。
-- 次に **A/B** を ON/OFF して、音量差ではなく質感で判断します。
-- 低音で全体がポンピングする場合は、**LOWP を上げる**（120〜150 Hz）か、**REL を AUTO** にします。
-- キックが潰れて聞こえる場合は、**PUNCH を遅く**（30〜50 ms）します。
-- **LIMIT は 0 dB のまま**が基本です。通常の再生ではリミッターがほとんど動かないのが正常な状態で、LIMIT メーターが常に数 dB 振れるならレベルの上げすぎです。
+- Start with **TECHNO GLUE** and set GLUE so that the COMP meter reads
+  **-1 to -3 dB** in the loud parts of the track.
+- Then switch **A/B** on and off and judge by character, not by level.
+- If the low end makes everything pump, **raise LOWP** (120–150 Hz) or set
+  **REL to AUTO**.
+- If the kick sounds squashed, **slow PUNCH down** (30–50 ms).
+- **Leave LIMIT at 0 dB** as a rule. In normal playback the limiter should
+  barely move; if the LIMIT meter swings by several dB all the time, the level is
+  too high.
 
-## 内部 DSP 構成（実際の処理順）
+## Internal DSP (the actual processing order)
 
 ```
-入力（int16 ステレオ）
-  ├─ サイドチェイン：Low Protect HPF（2 次 Butterworth、L/R 別、検出専用）
-  │     → max(L², R²) → RMS（5 ms）→ dB
-  │     → ソフトニー・ゲイン計算（しきい値・レシオ・ニー）
-  │     → 包絡線（dB 領域、アタック = PUNCH）
-  │        AUTO：速い包絡線（リリース 120 ms）と遅い包絡線（チャージ 600 ms・リリース 1.2 s）の深い方
-  ├─ 本体：× コンプゲイン（L/R 共通）× DENS × LIMIT
-  ├─ ルックアヘッド・リミッター（L/R 共通ゲイン）
-  │     必要ゲイン = min(1, Ceiling / max(|L|,|R|))
-  │     → 区間最小値（LOOK + 1 サンプル）→ リリース（瞬時に下げ、L.REL で戻す）
-  │     → 移動平均（LOOK サンプル）→ LOOK 分遅延した音に適用
-  ├─ × OUT（≤ 0 dB）
-  ├─ A/B：同じ遅延の未処理音 × 音量一致ゲイン（クロスフェード 10 ms）
-  └─ BYP：遅延なしの入力そのもの（クロスフェード 10 ms）
-出力（int16）
+input (int16 stereo)
+  ├─ sidechain: Low Protect HPF (2nd-order Butterworth, per channel, detection only)
+  │     → max(L², R²) → RMS (5 ms) → dB
+  │     → soft-knee gain computer (threshold, ratio, knee)
+  │     → envelope (in dB, attack = PUNCH)
+  │        AUTO: the deeper of a fast envelope (release 120 ms) and a slow one (charge 600 ms, release 1.2 s)
+  ├─ main path: × compressor gain (shared by L/R) × DENS × LIMIT
+  ├─ look-ahead limiter (gain shared by L/R)
+  │     required gain = min(1, Ceiling / max(|L|,|R|))
+  │     → running minimum (LOOK + 1 samples) → release (drops at once, recovers over L.REL)
+  │     → moving average (LOOK samples) → applied to the audio delayed by LOOK
+  ├─ × OUT (≤ 0 dB)
+  ├─ A/B: the unprocessed audio with the same delay × level-matching gain (10 ms crossfade)
+  └─ BYP: the input itself with no delay (10 ms crossfade)
+output (int16)
 ```
 
-- **ステレオリンク**：検出は `max(L², R²)` で、ゲインは L/R に同じ値をかけます。片側だけ大きい音でも定位は動きません（テストで L/R の GR 差は 0.01 dB）。
-- **リミッター**：区間最小値と、同じ長さの移動平均を組み合わせています。これにより、各ピークがディレイから出る瞬間に、ゲインが必ず必要値まで下がっています（サンプルピークの保証）。最後に Ceiling でクランプしますが、これは丸め誤差と、LOOK・CEIL を変えた直後の数サンプルを拾うためだけのものです。
-- **クリック対策**：ゲイン・しきい値・Ceiling は 20 ms でスムージングし、バイパス類は 10 ms でクロスフェードします。LOOK の変更は、新旧 2 つの遅延タップを 256 サンプルでクロスフェードします。
-- **安全性**：数値が NaN／Inf になったら状態をリセットし、`nan_resets` で数えます。デノーマルはブロックごとにゼロへ落とします。
-- **リアルタイム安全性**：`process_block` / `set_param` / `get_param` はすべて Move の SPI コールバック上で動きます。動的確保・ファイル I/O・ロックは一切なく、インスタンスは静的プールから原子操作で取得します。`scripts/check_abi.py` が malloc／mutex を参照していないことを検査します。
-- 44.1 kHz と 48 kHz に対応しています（係数とルックアヘッドのサンプル数はサンプルレートから計算します）。
+- **Stereo link**: detection uses `max(L², R²)` and the same gain is applied to
+  L and R. A sound loud on only one side does not move the image (in tests the
+  L/R GR difference is 0.01 dB).
+- **Limiter**: a running minimum combined with a moving average of the same
+  length. This guarantees that the gain has fallen to the required value at the
+  moment each peak leaves the delay (a sample-peak guarantee). A final clamp at
+  the Ceiling is only there to catch rounding error and the few samples right
+  after LOOK or CEIL change.
+- **Click prevention**: gain, threshold and Ceiling are smoothed over 20 ms and
+  the bypasses crossfade over 10 ms. A LOOK change crossfades between the old
+  and new delay taps over 256 samples.
+- **Safety**: if a value becomes NaN/Inf the state is reset and counted in
+  `nan_resets`. Denormals are flushed to zero every block.
+- **Realtime safety**: `process_block` / `set_param` / `get_param` all run on
+  Move's SPI callback. There is no dynamic allocation, file I/O or locking, and
+  instances are taken from a static pool with atomic operations.
+  `scripts/check_abi.py` checks that malloc/mutex are not referenced.
+- 44.1 kHz and 48 kHz are supported (coefficients and the look-ahead in samples
+  are computed from the sample rate).
 
-## レイテンシー
+## Latency
 
-- ルックアヘッド分だけ遅れます。初期値の 2 ms は **88 サンプル**（44.1 kHz）で、1〜3 ms で可変です。
-- Schwung には遅延補正がありません。
-  - **Move→Schwung ON**：全体が一律に 2 ms 遅れるだけなので、ずれは生じません（Link Audio 自体の遅延はこれよりずっと大きいです）。
-  - **Move→Schwung OFF**：Schwung の音だけが 2 ms 遅れ、Move の音とずれます。
-- BYP は「遅延なしの入力」に戻るので、ON/OFF の瞬間だけ 10 ms のクロスフェードがかかります。C.BYP・L.BYP・A/B は遅延を保ったまま切り替わるので、タイミングは変わりません。
-- ホストのバイパス（Mute + ジョグクリック）は、ホストが処理前の音をそのまま戻す方式です。そのため 2 ms の遅延が一瞬で消え、小さな段差が出ることがあります。本体の BYP を使う方が滑らかです。
+- It is late by the look-ahead. The default 2 ms is **88 samples** (44.1 kHz),
+  variable from 1 to 3 ms.
+- Schwung has no latency compensation.
+  - **Move→Schwung ON**: everything is delayed by the same 2 ms, so nothing
+    drifts apart (Link Audio's own delay is much larger than this).
+  - **Move→Schwung OFF**: only Schwung's audio is 2 ms late and drifts against
+    Move's audio.
+- BYP returns to "the input with no delay", so only the moment of switching gets
+  a 10 ms crossfade. C.BYP, L.BYP and A/B switch while keeping the delay, so the
+  timing does not change.
+- The host's bypass (Mute + jog click) hands back the unprocessed audio as it
+  is, so the 2 ms delay vanishes at once and can leave a small step. The
+  module's own BYP is smoother.
 
-## CPU 負荷
+## CPU load
 
-| 環境 | 1 ブロック（128 フレーム）あたり |
+| Environment | Per block (128 frames) |
 |---|---|
-| 開発機（x86-64、参考値） | 約 6 µs（実時間の 0.2 %） |
-| Move（Cortex-A72、2026-10-20 実測） | 平均 **約 38 µs**（1 ブロック 2902 µs の **1.3 %**） |
+| Development machine (x86-64, for reference) | about 6 µs (0.2 % of real time) |
+| Move (Cortex-A72, measured 2026-10-20) | mean **about 38 µs** (**1.3 %** of a 2902 µs block) |
 
-1 サンプルあたりの重い処理は `logf` と `expf` が 1 回ずつ程度で、オーバーサンプリングはしていません。ベンチの最悪値（数百〜1700 µs）は、通常優先度のベンチプロセスが Move のリアルタイムスレッドに割り込まれた時間を含みます。DSP 自体の負荷ではありません。測定手順は次のとおりです。
+The heavy work per sample is roughly one `logf` and one `expf`; there is no
+oversampling. The benchmark's worst values (a few hundred to 1700 µs) include
+time when the normal-priority benchmark process was preempted by Move's
+realtime threads; they are not the DSP's own load. To measure:
 
 ```bash
-scp -i ~/.ssh/move_key build/bench-device-arm64 ableton@move.local:/data/UserData/
-ssh -i ~/.ssh/move_key ableton@move.local "taskset 0x7 /data/UserData/bench-device-arm64"
+scp build/bench-device-arm64 ableton@move.local:/data/UserData/
+ssh ableton@move.local "taskset 0x7 /data/UserData/bench-device-arm64"
 ```
 
-## テスト
+## Tests
 
 ```bash
-bash scripts/test.sh          # SCHWUNG_ROOT=<Schwung のチェックアウト>（既定は ../schwung）
+bash scripts/test.sh          # SCHWUNG_ROOT=<a Schwung checkout> (default ../schwung)
 ```
 
-次の 4 つを実行します。
+It runs four things:
 
-- `tests/test_engine.c`：実際のプラグインのエントリーポイントを、128 フレーム単位で呼んで検査します。通常ビルドと ASan/UBSan ビルドの両方で実行します。
-- `tests/test_ui.mjs`：module.json を **Schwung 本体のページプランナーとバリデーター**に通して、ページ構成を確認します。
-- ARM64 ビルドと ABI 検査：glibc ≤ 2.34、エクスポートは 1 シンボルのみ、malloc／mutex なし。
-- ライセンス検査。
+- `tests/test_engine.c`: calls the real plugin entry points in 128-frame blocks
+  and checks them, in both a normal build and an ASan/UBSan build.
+- `tests/test_ui.mjs`: runs module.json through **Schwung's own page planner and
+  validator** to check the page layout.
+- The ARM64 build and ABI check: glibc ≤ 2.34, a single exported symbol, no
+  malloc/mutex.
+- A licence check.
 
-### テスト結果（2026-10-20、開発機）
+### Test results (2026-10-20, development machine)
 
-| 項目 | 結果 |
+| Item | Result |
 |---|---|
-| 無音 | 出力も完全な 0。GR 表示 0、入力メーター -60 |
-| 中立設定（GLUE 0、Ceiling 未満） | 入力を 88 サンプル遅らせたものと**ビット一致** |
-| BYP ON | クロスフェード後は入力と**ビット一致** |
-| Ratio（-12 dB RMS 入力、しきい値 -24、ハードニー） | 1.5:1 → -16.02（理論値 -16.00）、2:1 → -18.03、3:1 → -20.04、4:1 → -21.05 dB |
-| しきい値未満 | -30.00 dB のまま（変化なし） |
-| ソフトニー 6 dB（しきい値ちょうど） | -24.39 dB（理論値 -24.38） |
-| Attack（GR の 63 % に達する時間） | 1 / 10 / 30 / 50 ms → 2.0 / 12.0 / 31.9 / 51.9 ms |
-| Release（GR が 10 % まで戻る時間） | 100 ms → 240 ms、600 ms → 1392 ms |
-| AUTO Release | 50 ms のヒット後 287 ms、3 秒間の圧縮後 2761 ms（音の続き方に応じて変化） |
-| Low Protect（45 Hz・-10 dB の正弦波） | GR が OFF で 10.3 dB、100 Hz で 3.2 dB、200 Hz で 0.0 dB。オーディオ側の 45 Hz は変化 0.000 dB |
-| ステレオリンク（L が R より 20 dB 大きい） | GR が L -16.96 dB、R -16.95 dB |
-| Ceiling（LIMIT +12 dB と DENS +12 dB でフルスケールのミックスを入力） | -0.3 / -1 / -6 dBFS のいずれも超えず |
-| インパルス（フルスケール ＋12 dB） | -1 dBFS 以下 |
-| 初期設定でピーク -2 dBFS のミックス | リミッター GR 0.00 dB（何もしない） |
-| パラメーター急変（18 種類を連続で変更） | 最大のサンプル間変化は正弦波自体の傾きの 1.07 倍（クリックなし） |
-| プリセット 3 種 | 仕様の値と一致 |
-| 状態の保存・復元 | 全パラメーターが一致。壊れた状態文字列や不正値は無視、範囲外は丸め |
-| A/B のレベル一致 | 処理後 -15.48 dB RMS に対して -15.43 dB |
-| 長時間・過大入力（フルスケールのノイズ 10 分、ブロックごとにランダムなパラメーター変更） | NaN リセット 0 回、Ceiling 超過 0 回、無音後は完全な 0 に戻る |
+| Silence | The output is exactly 0 too. GR shows 0, the input meter -60 |
+| Neutral settings (GLUE 0, below the Ceiling) | **Bit-identical** to the input delayed by 88 samples |
+| BYP ON | **Bit-identical** to the input after the crossfade |
+| Ratio (-12 dB RMS input, threshold -24, hard knee) | 1.5:1 → -16.02 (theory -16.00), 2:1 → -18.03, 3:1 → -20.04, 4:1 → -21.05 dB |
+| Below the threshold | Stays at -30.00 dB (no change) |
+| 6 dB soft knee (exactly at the threshold) | -24.39 dB (theory -24.38) |
+| Attack (time to reach 63 % of GR) | 1 / 10 / 30 / 50 ms → 2.0 / 12.0 / 31.9 / 51.9 ms |
+| Release (time for GR to recover to 10 %) | 100 ms → 240 ms, 600 ms → 1392 ms |
+| AUTO release | 287 ms after a 50 ms hit, 2761 ms after 3 s of compression (follows how the sound continues) |
+| Low Protect (45 Hz sine at -10 dB) | GR 10.3 dB with OFF, 3.2 dB at 100 Hz, 0.0 dB at 200 Hz. The audio's 45 Hz changes by 0.000 dB |
+| Stereo link (L 20 dB louder than R) | GR L -16.96 dB, R -16.95 dB |
+| Ceiling (a full-scale mix in with LIMIT +12 dB and DENS +12 dB) | Never exceeds -0.3 / -1 / -6 dBFS |
+| Impulse (full scale + 12 dB) | At or below -1 dBFS |
+| A mix peaking at -2 dBFS with default settings | Limiter GR 0.00 dB (does nothing) |
+| Sudden parameter changes (18 kinds changed in a row) | The largest sample-to-sample change is 1.07 times the sine's own slope (no clicks) |
+| The 3 presets | Match the specified values |
+| Saving and restoring state | Every parameter matches. Broken state strings and invalid values are ignored, out-of-range values are clamped |
+| A/B level matching | -15.43 dB against -15.48 dB RMS processed |
+| Long run with excessive input (10 minutes of full-scale noise, random parameter changes every block) | 0 NaN resets, 0 Ceiling overshoots, returns to exactly 0 after silence |
 
-### A / B / C 比較（合成テクノミックス 16 秒、TECHNO GLUE 初期設定、最初の 4 秒を除外）
+### A / B / C comparison (16 s synthetic techno mix, TECHNO GLUE defaults, first 4 s excluded)
 
-ミックスの中身は、4 つ打ちのキック（160→48 Hz）、裏打ちのベース（55 Hz）、303 風の 16 分ライン、ハット、ノイズのテクスチャーです。
+The mix is a four-on-the-floor kick (160→48 Hz), an off-beat bass (55 Hz), a
+303-style 1/16 line, hats and a noise texture.
 
-| 入力 | 条件 | ピーク | RMS | クレスト | GR |
+| Input | Condition | Peak | RMS | Crest | GR |
 |---|---|---|---|---|---|
-| ×0.55（ピーク -1.9 dBFS） | A バイパス | -1.85 dBFS | -15.83 dBFS | 13.98 dB | — |
-| | B コンプのみ | -2.80 | -17.45 | 14.65 | 平均 1.38、最大 2.95 dB |
-| | C コンプ＋リミッター | -2.80 | -17.45 | 14.65 | リミッター 0.00 dB |
-| ×0.9（クリップ寸前） | A バイパス | 0.00 | -11.56 | 11.56 | — |
-| | B コンプのみ | -1.87 | -14.54 | 12.67 | 平均 2.70、最大 4.70 dB |
-| | C コンプ＋リミッター | -1.87 | -14.54 | 12.67 | リミッター 0.00 dB |
+| ×0.55 (peak -1.9 dBFS) | A bypass | -1.85 dBFS | -15.83 dBFS | 13.98 dB | — |
+| | B compressor only | -2.80 | -17.45 | 14.65 | mean 1.38, max 2.95 dB |
+| | C compressor + limiter | -2.80 | -17.45 | 14.65 | limiter 0.00 dB |
+| ×0.9 (just short of clipping) | A bypass | 0.00 | -11.56 | 11.56 | — |
+| | B compressor only | -1.87 | -14.54 | 12.67 | mean 2.70, max 4.70 dB |
+| | C compressor + limiter | -1.87 | -14.54 | 12.67 | limiter 0.00 dB |
 
-アタック 30 ms がキックの立ち上がりを通すので、コンプ後はクレストファクターがむしろ少し**増えて**います。トランジェントを潰していないということです。B・C は音量が下がるので、聴き比べるときは A/B（レベル一致）を使ってください。
+The 30 ms attack lets the kick's onset through, so after the compressor the
+crest factor actually **rises** a little: the transients are not being crushed.
+B and C are quieter, so use A/B (level-matched) when comparing by ear.
 
-**聴感評価は未完了です。** ここまでの検証はすべて合成信号です。実際のテクノのミックスでの試聴と、プリセット値の調整は、実機で行う必要があります。
+**Listening evaluation is not done.** All verification so far uses synthetic
+signals. Listening on real techno mixes and tuning the preset values have to be
+done on the hardware.
 
-## 既知の制限
+## Known limitations
 
-- **Move→Schwung が OFF だと Move 本体の音は処理されません**（ホストの仕様）。
-- **True Peak は保証しません。** 保証するのはサンプルピークだけです。サンプル間のピークは Ceiling をわずかに超えることがあります（Ceiling を -1 dBFS 以下にしておけば、通常は問題になりません）。
-- A/B の音量合わせは単純な RMS（約 3 秒）で、LUFS ではありません。また、未処理の音を持ち上げた結果がフルスケールを超えると int16 でクリップします（A/B 中だけ）。
-- Ceiling はユニティゲインのミックスに対する値です。最終的な DAC 出力は、さらにマスターボリュームがかかったものです。
-- PRESETS ページはジョグで選んだ瞬間に適用されます。
-- リミッターのリリースは固定時間です（信号に応じた自動リリースは未実装）。
-- 実機での聴感確認と、実際のミックスでのプリセット調整はまだです。
+- **With Move→Schwung OFF, Move's own audio is not processed** (how the host works).
+- **True peak is not guaranteed.** Only the sample peak is. Inter-sample peaks
+  can slightly exceed the Ceiling (normally not a problem with the Ceiling at
+  -1 dBFS or below).
+- A/B level matching is a plain RMS (about 3 s), not LUFS. And if raising the
+  unprocessed audio goes past full scale, it clips in int16 (only during A/B).
+- The Ceiling is relative to the unity-gain mix. The final DAC output also has
+  the master volume applied.
+- The PRESETS page applies a preset the moment it is chosen with the jog.
+- The limiter's release is a fixed time (no signal-dependent automatic release).
+- Listening on the hardware and tuning the presets on real mixes are still to do.
 
-## ライセンス
+## Licence
 
-MIT License（`LICENSE`）。Copyright (c) 2026 Hiro Ikezawa.
+MIT License (`LICENSE`). Copyright (c) 2026 Hiro Ikezawa.
 
-DSP はすべてこのリポジトリで書いたもので、外部の DSP コードは使っていません。同梱している第三者ファイルは、Schwung のプラグイン API ヘッダー（MIT）だけです。詳しくは `THIRD_PARTY_LICENSES.md` を参照してください。
+All the DSP was written in this repository; no external DSP code is used. The
+only bundled third-party file is Schwung's plugin API header (MIT). See
+`THIRD_PARTY_LICENSES.md` for details.
